@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-trustlock-bgSecondary text-trustlock-textPrimary font-sans antialiased;
+    background-image: 
+      radial-gradient(at 0% 0%, hsla(217, 100%, 97%, 1) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(258, 100%, 97%, 1) 0px, transparent 50%);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-white/70 backdrop-blur-xl border border-white/40 shadow-glass rounded-2xl;
+  }
+
+  .glass-input {
+    @apply bg-white/50 backdrop-blur-md border border-gray-200 shadow-inner rounded-xl focus:outline-none focus:ring-2 focus:ring-trustlock-accent/50 focus:border-transparent transition-all duration-300;
+  }
+
+  .btn-primary {
+    @apply bg-gradient-to-r from-trustlock-accent to-trustlock-glow text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-trustlock-glow/40 hover:-translate-y-0.5 transition-all duration-300;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-trustlock-textPrimary font-semibold py-3 px-6 rounded-xl shadow-soft-3d hover:shadow-soft-3d-hover hover:-translate-y-0.5 transition-all duration-300 border border-gray-100;
+  }
+}
