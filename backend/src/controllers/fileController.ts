@@ -5,60 +5,64 @@ import fs from 'fs';
 
 export const uploadFile = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    console.log('--- Upload Started ---');
     if (!req.file) {
+      console.log('Upload Failed: No file in request');
       res.status(400).json({ message: 'No file uploaded' });
       return;
     }
 
     const { originalname, mimetype, size, path } = req.file;
-    const { iv } = req.body; // Client must send the IV used for encryption
+    const { iv } = req.body;
 
-    console.log('Upload Request:', { 
-      body: req.body, 
-      file: { originalname, mimetype, size } 
-    });
+    console.log('Upload File Details:', { originalname, mimetype, size, path });
+    console.log('Upload Body Details:', req.body);
+    console.log('Upload User Details:', { id: req.user?._id, org: req.user?.organization });
 
     if (!iv) {
+      console.log('Upload Failed: Missing IV');
       res.status(400).json({ message: 'Encryption IV is required' });
       return;
     }
 
     let isPendingApproval = false;
     
-    // Check workflows if user belongs to an organization
-    if (req.user.organization) {
-      // Lazy import to prevent circular deps
-      const Workflow = (await import('../models/Workflow')).default;
-      const workflows = await Workflow.find({ 
-        organization: req.user.organization, 
-        triggerEvent: 'FILE_UPLOADED',
-        isActive: true
-      });
-      
-      for (const wf of workflows) {
-        if (wf.action === 'REQUIRE_APPROVAL') {
-          isPendingApproval = true;
-          console.log(`[WORKFLOW] File ${req.file.originalname} requires approval.`);
-        } else if (wf.action === 'NOTIFY_ADMIN') {
-          console.log(`[WORKFLOW] Admin notified of upload: ${req.file.originalname}`);
+    if (req.user && req.user.organization) {
+      try {
+        const Workflow = (await import('../models/Workflow')).default;
+        const workflows = await Workflow.find({ 
+          organization: req.user.organization, 
+          triggerEvent: 'FILE_UPLOADED',
+          isActive: true
+        });
+        
+        for (const wf of workflows) {
+          if (wf.action === 'REQUIRE_APPROVAL') {
+            isPendingApproval = true;
+          }
         }
+      } catch (wfError) {
+        console.error('Workflow error (ignored):', wfError);
       }
     }
 
+    console.log('Creating Database Record...');
     const file = await File.create({
-      originalName: req.file.originalname,
-      mimeType: req.file.mimetype,
-      size: req.file.size,
-      path: req.file.path,
-      iv: req.body.iv,
+      originalName: originalname,
+      mimeType: mimetype,
+      size: size,
+      path: path,
+      iv: iv,
       owner: req.user._id,
       organization: req.user.organization,
       team: req.user.team,
       status: isPendingApproval ? 'pending_approval' : 'active'
     });
 
+    console.log('Upload Success:', file._id);
     res.status(201).json(file);
   } catch (error: any) {
+    console.error('Upload Controller Error:', error);
     res.status(500).json({ message: error.message });
   }
 };
